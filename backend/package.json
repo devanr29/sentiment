@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "chmod +x ./setup.sh && ./setup.sh && node server.js",
-    "install-deps": "apt-get update && apt-get install -y wget unzip gnupg curl"
+    "install-deps": "apt-get update && apt-get install -y wget unzip gnupg curl xvfb"
   },
   "keywords": [],
   "author": "",
