@@ -18,17 +18,17 @@ rm -f google-chrome-stable_current_amd64.deb
 CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
 echo "Installed Chrome version: $CHROME_VERSION"
 
-# Download ChromeDriver (using -O to specify output filename)
-mkdir -p chromedriver
+# Download and install ChromeDriver
+mkdir -p chromedriver-tmp
 curl -fSL "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip" -o chromedriver.zip
+unzip -q -o chromedriver.zip -d chromedriver-tmp/
 
-# Forcefully unzip without prompts
-unzip -q -o chromedriver.zip -d chromedriver/
-chmod +x chromedriver/chromedriver
-mv chromedriver/chromedriver /usr/local/bin/
+# The binary is named 'chromedriver' inside the directory
+chmod +x chromedriver-tmp/chromedriver-linux64/chromedriver
+mv chromedriver-tmp/chromedriver-linux64/chromedriver /usr/local/bin/
 
 # Cleanup
-rm -rf chromedriver.zip chromedriver/
+rm -rf chromedriver.zip chromedriver-tmp
 
-# Verify
+# Verify installation
 echo "ChromeDriver installed: $(chromedriver --version)"
