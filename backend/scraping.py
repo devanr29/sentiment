@@ -14,18 +14,26 @@ from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 
 def setup_driver():
-    options = Options()
-    options.add_argument('--no-sandbox')
-    options.add_argument('--headless')
-    options.add_argument('--disable-dev-shm-usage')
+    # Configure Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--headless=new')  # New headless mode
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
     
-    # Path yang sudah diverifikasi
-    driver_path = '/usr/local/bin/chromedriver'
-    if not os.path.exists(driver_path):
-        raise RuntimeError(f"ChromeDriver not found at {driver_path}")
+    # Set ChromeDriver path
+    chromedriver_path = '/usr/local/bin/chromedriver'
     
-    service = Service(executable_path=driver_path)
-    return webdriver.Chrome(service=service, options=options)
+    # Verify ChromeDriver exists
+    if not os.path.exists(chromedriver_path):
+        raise FileNotFoundError(
+            f"ChromeDriver not found at {chromedriver_path}\n"
+            f"Current directory contents: {os.listdir('/usr/local/bin')}"
+        )
+    
+    # Initialize WebDriver
+    service = Service(executable_path=chromedriver_path)
+    return webdriver.Chrome(service=service, options=chrome_options)
 
 # Fungsi untuk prediksi sentimen
 def predict_sentiment(text, tokenizer, model, device, max_len=512):
