@@ -7,6 +7,7 @@ apt-get update && apt-get install -y \
     unzip \
     curl \
     xvfb \
+    jq \
     --no-install-recommends
 
 # Install Chrome via direct download
@@ -15,22 +16,22 @@ curl -fSLO "$CHROME_DEB_URL"
 apt-get install -y ./google-chrome-stable_current_amd64.deb
 rm -f google-chrome-stable_current_amd64.deb
 
-# Get exact Chrome version (e.g., 135.0.7049.52)
+# Get Chrome version (e.g., 137.0.7107.0)
 FULL_VERSION=$(google-chrome --version | awk '{print $3}')
-MAJOR_VERSION=$(echo "$FULL_VERSION" | cut -d'.' -f1)
+echo "Installed Chrome version: $FULL_VERSION"
 
-# New reliable method to get ChromeDriver
-CHROMEDRIVER_URL="https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
-VERSION_DATA=$(curl -fsSL "$CHROMEDRIVER_URL")
-DOWNLOAD_URL=$(echo "$VERSION_DATA" | grep -A 5 "linux64" | grep "chromedriver" | grep -o 'https://[^"]*')
+# Get latest stable ChromeDriver URL
+CHROMEDRIVER_JSON="https://googlechromelabs.github.io/chrome-for-testing/latest-patch-versions-per-build-with-downloads.json"
+DOWNLOAD_DATA=$(curl -fsSL "$CHROMEDRIVER_JSON")
+CHROMEDRIVER_URL=$(echo "$DOWNLOAD_DATA" | jq -r '.builds[].downloads.chromedriver[] | select(.platform == "linux64") | .url')
 
-echo "Downloading ChromeDriver from: $DOWNLOAD_URL"
-curl -fSLO "$DOWNLOAD_URL"
+echo "Downloading ChromeDriver from: $CHROMEDRIVER_URL"
+curl -fSLO "$CHROMEDRIVER_URL"
 unzip -q chromedriver-linux64.zip
 chmod +x chromedriver-linux64/chromedriver
 mv chromedriver-linux64/chromedriver /usr/local/bin/
 rm -rf chromedriver-linux64*
 
 # Verify installation
-echo "Chrome version: $(google-chrome --version)"
+echo "ChromeDriver installed at: $(which chromedriver)"
 echo "ChromeDriver version: $(chromedriver --version)"
