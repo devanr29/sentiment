@@ -12,7 +12,7 @@ app = FastAPI(
 )
 
 # Load model - using raw string for Windows path
-model_path = r"D:\Devan baru\New folder\NLP\sentiment-analysis\backend\model"  # Ganti dengan forward slash
+model_path = "./model"  # Ganti dengan forward slash
 
 try:
     # Verify model files exist
