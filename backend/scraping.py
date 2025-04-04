@@ -19,14 +19,8 @@ def setup_driver():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     
-    if os.environ.get('RAILWAY_ENVIRONMENT'):
-        # Production settings
-        chrome_options.binary_location = '/usr/bin/google-chrome-stable'
-        service = Service(executable_path='/usr/bin/chromedriver')
-    else:
-        # Local development
-        service = Service(ChromeDriverManager().install())
-    
+    # Gunakan path yang benar
+    service = Service(executable_path='/usr/local/bin/chromedriver')
     return webdriver.Chrome(service=service, options=chrome_options)
 
 # Fungsi untuk prediksi sentimen
