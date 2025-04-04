@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e  # Exit immediately if any command fails
+set -ex  # Enable debugging and exit on error
 
 # Install dependencies
 apt-get update && apt-get install -y \
@@ -18,17 +18,21 @@ rm -f google-chrome-stable_current_amd64.deb
 CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
 echo "Installed Chrome version: $CHROME_VERSION"
 
-# Download and install ChromeDriver
-mkdir -p chromedriver-tmp
-curl -fSL "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip" -o chromedriver.zip
-unzip -q -o chromedriver.zip -d chromedriver-tmp/
+# Download ChromeDriver
+mkdir -p /tmp/chromedriver
+curl -fSL "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip" -o /tmp/chromedriver.zip
+unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver
 
-# The binary is named 'chromedriver' inside the directory
-chmod +x chromedriver-tmp/chromedriver-linux64/chromedriver
-mv chromedriver-tmp/chromedriver-linux64/chromedriver /usr/local/bin/
-
-# Cleanup
-rm -rf chromedriver.zip chromedriver-tmp
+# Install ChromeDriver
+install -o root -g root -m 0755 /tmp/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
 
 # Verify installation
-echo "ChromeDriver installed: $(chromedriver --version)"
+if ! command -v chromedriver &> /dev/null; then
+    echo "ChromeDriver installation failed!"
+    echo "Searching for chromedriver in /tmp:"
+    find /tmp -name chromedriver
+    exit 1
+fi
+
+echo "ChromeDriver successfully installed: $(chromedriver --version)"
+echo "ChromeDriver path: $(which chromedriver)"
