@@ -1,15 +1,33 @@
-# backend/scraping.py
 import sys
 import json
+import os
 from selenium import webdriver
-from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch
+
+def setup_driver():
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    
+    if os.environ.get('RAILWAY_ENVIRONMENT'):
+        # Production settings
+        chrome_options.binary_location = '/usr/bin/google-chrome-stable'
+        service = Service(executable_path='/usr/bin/chromedriver')
+    else:
+        # Local development
+        service = Service(ChromeDriverManager().install())
+    
+    return webdriver.Chrome(service=service, options=chrome_options)
 
 # Fungsi untuk prediksi sentimen
 def predict_sentiment(text, tokenizer, model, device, max_len=512):
@@ -35,19 +53,17 @@ def main():
         return
 
     imdb_url = sys.argv[1]
-    CHROMEDRIVER_PATH = r"D:\Devan baru\New folder\NLP\chromedriver-win64\chromedriver.exe"
 
     try:
-        # Load model
+        # Load model - ensure model files are in ./model directory
         tokenizer = BertTokenizer.from_pretrained('./model')
         model = BertForSequenceClassification.from_pretrained('./model')
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model = model.to(device)
         model.eval()
 
-        # Setup scraping
-        service = Service(CHROMEDRIVER_PATH)
-        driver = webdriver.Chrome(service=service)
+        # Setup browser
+        driver = setup_driver()
         driver.get(imdb_url)
         time.sleep(3)
 
@@ -77,15 +93,24 @@ def main():
 
         # Output hasil
         print(json.dumps({
-            "total_reviews": total_reviews,
-            "positive_percent": round(positive_percent, 2),
-            "negative_percent": round(negative_percent, 2),
-            "positive_count": positive_count,
-            "negative_count": total_reviews - positive_count
+            "success": True,
+            "result": {
+                "total_reviews": total_reviews,
+                "positive": round(positive_percent, 2),
+                "negative": round(negative_percent, 2),
+                "sample_reviews": reviews[:3]  # Include sample for debugging
+            }
         }))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        print(json.dumps({
+            "success": False,
+            "error": str(e),
+            "message": "Analysis failed"
+        }))
+    finally:
+        if 'driver' in locals():
+            driver.quit()
 
 if __name__ == "__main__":
     main()
