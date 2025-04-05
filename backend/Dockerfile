@@ -1,36 +1,54 @@
-# === Stage 1: Install Node.js Dependencies ===
-FROM node:18 AS node-base
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
+# Stage 1: Python 3.12 base image + Rust for packages like tokenizers
+FROM python:3.12-slim AS python-base
 
-# === Stage 2: Install Python Dependencies ===
-FROM python:3.12 AS python-base
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Tambahkan Rust toolchain
-RUN apt-get update && apt-get install -y curl
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+# Install Rust and build tools + Chrome dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    gcc \
+    git \
+    unzip \
+    wget \
+    libglib2.0-0 \
+    libnss3 \
+    libgconf-2-4 \
+    libfontconfig1 \
+    libxss1 \
+    libappindicator1 \
+    libasound2 \
+    fonts-liberation \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# === Stage 3: Final Image with Both Environments ===
-FROM python:3.12
+# Copy setup.sh and run it
+COPY setup.sh .
+RUN chmod +x setup.sh && ./setup.sh
+
+# Copy Python requirements and install
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Node.js runtime + copy Python environment
+FROM node:18
+
 WORKDIR /app
 
-# Copy semua file dari stage sebelumnya
-COPY --from=node-base /app/node_modules /app/node_modules
-COPY --from=python-base /app /app
-
-# Copy seluruh project ke container
 COPY . .
 
-# Beri izin eksekusi ke setup.sh
-RUN chmod +x setup.sh
+# Copy Python environment from the previous stage
+COPY --from=python-base /usr/local /usr/local
+COPY --from=python-base /root/.cargo /root/.cargo
+ENV PATH="/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.cargo/bin"
 
-# Jalankan setup.sh untuk install Chrome & ChromeDriver
-RUN ./setup.sh
+# Install Node.js dependencies
+RUN npm install
 
-# Jalankan kedua aplikasi secara bersamaan
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port 8000 & node server.js"]
+# Start server
+CMD ["node", "server.js"]
