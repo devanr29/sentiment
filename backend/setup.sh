@@ -1,27 +1,29 @@
 #!/bin/bash
-set -e
 
-echo "🔧 Setting up ChromeDriver..."
+# Install Chrome and ChromeDriver for Railway
+echo "Setting up Chrome and ChromeDriver..."
 
-# Get installed Chrome version
-CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-echo "📦 Installed Chrome version: $CHROME_VERSION"
-
-# Download ChromeDriver (Chrome for Testing channel)
-curl -fSL "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" -o /tmp/chromedriver.zip
-
-# Extract
-unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver
-
-# Move chromedriver to PATH
-CHROMEDRIVER_PATH="/tmp/chromedriver/chromedriver-linux64/chromedriver"
-echo "🔍 Detected chromedriver path: $CHROMEDRIVER_PATH"
-
-if [ -f "$CHROMEDRIVER_PATH" ]; then
-    cp "$CHROMEDRIVER_PATH" /usr/local/bin/chromedriver
-    chmod +x /usr/local/bin/chromedriver
-    echo "✅ ChromeDriver installed: $(chromedriver --version)"
-else
-    echo "❌ ChromeDriver not found!"
-    exit 1
+# Install Chrome
+if [ ! -f "/usr/bin/google-chrome" ]; then
+    echo "Installing Google Chrome..."
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+    apt-get update -y
+    apt-get install -y google-chrome-stable
 fi
+
+# Install ChromeDriver (matching Chrome version)
+if [ ! -f "/usr/local/bin/chromedriver" ]; then
+    echo "Installing ChromeDriver..."
+    CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1)
+    CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+    wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+    unzip chromedriver_linux64.zip
+    mv chromedriver /usr/local/bin/
+    chmod +x /usr/local/bin/chromedriver
+    rm chromedriver_linux64.zip
+fi
+
+# Verify installations
+google-chrome --version
+chromedriver --version

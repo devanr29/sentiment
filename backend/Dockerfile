@@ -1,54 +1,39 @@
-# Stage 1: Python 3.12 base image + Rust for packages like tokenizers
-FROM python:3.12-slim AS python-base
+# Gunakan image Python 3.12
+FROM python:3.12-slim
 
-WORKDIR /app
-
-# Install Rust and build tools + Chrome dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    build-essential \
-    gcc \
-    git \
-    unzip \
+# ======== Instal dependensi sistem ========
+RUN apt-get update && apt-get install -y \
     wget \
-    libglib2.0-0 \
-    libnss3 \
-    libgconf-2-4 \
-    libfontconfig1 \
-    libxss1 \
-    libappindicator1 \
-    libasound2 \
-    fonts-liberation \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    && curl https://sh.rustup.rs -sSf | sh -s -- -y \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    unzip \
+    curl \
+    xvfb \           # Untuk virtual display (headless Chrome)
+    && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/.cargo/bin:${PATH}"
+# ======== Instal Chrome & Chromedriver ========
+# Install Google Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update -y \
+    && apt-get install -y google-chrome-stable
 
-# Copy setup.sh and run it
-COPY setup.sh .
-RUN chmod +x setup.sh && ./setup.sh
+# Install ChromeDriver (versi yang sesuai dengan Chrome)
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) \
+    && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION") \
+    && wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/local/bin/ \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm chromedriver_linux64.zip
 
-# Copy Python requirements and install
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Node.js runtime + copy Python environment
-FROM node:18
-
+# ======== Setup direktori kerja ========
 WORKDIR /app
-
 COPY . .
 
-# Copy Python environment from the previous stage
-COPY --from=python-base /usr/local /usr/local
-COPY --from=python-base /root/.cargo /root/.cargo
-ENV PATH="/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.cargo/bin"
+# ======== Install dependensi Python ========
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Node.js dependencies
-RUN npm install
+# ======== Expose port & jalankan app ========
+EXPOSE 3000
 
-# Start server
-CMD ["node", "server.js"]
+# Perintah untuk menjalankan server
+CMD ["python", "server.js"]
