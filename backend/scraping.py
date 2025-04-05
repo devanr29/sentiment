@@ -14,39 +14,16 @@ from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 
 def setup_driver():
-    # Configure Chrome options
+    CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
+
     chrome_options = Options()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--headless=new')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--remote-debugging-port=9222')
-    chrome_options.add_argument('--disable-setuid-sandbox')
-    
-    # Try multiple possible locations for ChromeDriver
-    chromedriver_paths = [
-        '/usr/local/bin/chromedriver',
-        '/usr/bin/chromedriver',
-        '/app/.apt/usr/bin/chromedriver'  # Common location in some cloud environments
-    ]
-    
-    for path in chromedriver_paths:
-        if os.path.exists(path):
-            service = Service(executable_path=path)
-            try:
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-                return driver
-            except Exception as e:
-                print(f"Failed to initialize with {path}: {str(e)}")
-                continue
-    
-    # Fallback to webdriver_manager if all paths fail
-    try:
-        from webdriver_manager.chrome import ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=chrome_options)
-    except Exception as e:
-        raise Exception(f"All ChromeDriver initialization attempts failed: {str(e)}")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.binary_location = "/usr/bin/google-chrome"
+
+    service = Service(CHROMEDRIVER_PATH)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     
 # Fungsi untuk prediksi sentimen
 def predict_sentiment(text, tokenizer, model, device, max_len=512):
