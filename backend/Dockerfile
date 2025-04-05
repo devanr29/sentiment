@@ -5,13 +5,13 @@ COPY package*.json ./
 RUN npm install
 
 # === Stage 2: Install Python Dependencies ===
-FROM python:3.10 AS python-base
+FROM python:3.12 AS python-base
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # === Stage 3: Final Image with Both Environments ===
-FROM python:3.10
+FROM python:3.12
 WORKDIR /app
 
 # Copy semua file dari stage sebelumnya
