@@ -21,16 +21,20 @@ echo "Installed Chrome version: $CHROME_VERSION"
 # Download ChromeDriver
 mkdir -p /tmp/chromedriver
 curl -fSL "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip" -o /tmp/chromedriver.zip
-unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver
+CHROMEDRIVER_PATH=$(find /tmp/chromedriver -type f -name chromedriver | head -n 1)
+echo "Detected chromedriver path: $CHROMEDRIVER_PATH"
 
-# Install ChromeDriver
-install -o root -g root -m 0755 /tmp/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+if [ -f "$CHROMEDRIVER_PATH" ]; then
+    cp "$CHROMEDRIVER_PATH" /usr/local/bin/chromedriver
+    chmod +x /usr/local/bin/chromedriver
+else
+    echo "ChromeDriver not found!"
+    exit 1
+fi
 
 # Verify installation
 if ! command -v chromedriver &> /dev/null; then
     echo "ChromeDriver installation failed!"
-    echo "Searching for chromedriver in /tmp:"
-    find /tmp -name chromedriver
     exit 1
 fi
 
