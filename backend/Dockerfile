@@ -1,18 +1,25 @@
-FROM python:3.12.5
-# Gunakan image resmi untuk menjalankan Node.js dan Python
+# === Stage 1: Install Node.js Dependencies ===
 FROM node:18 AS node-base
-
-# Set working directory
 WORKDIR /app
+COPY package*.json ./
+RUN npm install
 
-# Copy semua file ke dalam container
-COPY . .
-
-# Install dependencies untuk Python
+# === Stage 2: Install Python Dependencies ===
+FROM python:3.10 AS python-base
+WORKDIR /app
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies untuk Node.js
-RUN npm install
+# === Stage 3: Final Image with Both Environments ===
+FROM python:3.10
+WORKDIR /app
+
+# Copy semua file dari stage sebelumnya
+COPY --from=node-base /app/node_modules /app/node_modules
+COPY --from=python-base /app /app
+
+# Copy seluruh project ke container
+COPY . .
 
 # Beri izin eksekusi ke setup.sh
 RUN chmod +x setup.sh
